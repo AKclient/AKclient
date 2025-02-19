@@ -1,1 +1,172 @@
-wsg
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+local flying = false
+local flightSpeed = 50
+local flightBodyVelocity
+local flightBodyGyro
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "WalkJumpFlightGui"
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 250)
+frame.Position = UDim2.new(0.5, -130, 0.5, -125)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.2
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = frame
+
+-- Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Text = "AK Client"
+titleLabel.Size = UDim2.new(0, 70, 0, 20)
+titleLabel.Position = UDim2.new(0, 10, 0, 5)
+titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 12
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = frame
+
+-- Function to create Labels
+local function createLabel(text, posY)
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Size = UDim2.new(0, 100, 0, 20)
+    label.Position = UDim2.new(0, 20, 0, posY)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    return label
+end
+
+createLabel("WalkSpeed", 40)
+createLabel("JumpPower", 80)
+createLabel("Flight Speed", 140)
+
+-- Function to create TextBoxes
+local function createTextBox(posY)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0, 80, 0, 25)
+    box.Position = UDim2.new(0, 150, 0, posY)
+    box.PlaceholderText = "Value"
+    box.Text = ""
+    box.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 14
+    box.BorderSizePixel = 0
+    box.Parent = frame
+    return box
+end
+
+local walkSpeedBox = createTextBox(40)
+local jumpPowerBox = createTextBox(80)
+
+local flightSlider = Instance.new("TextBox")
+flightSlider.Size = UDim2.new(0, 80, 0, 25)
+flightSlider.Position = UDim2.new(0, 150, 0, 140)
+flightSlider.Text = tostring(flightSpeed)
+flightSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+flightSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+flightSlider.Font = Enum.Font.Gotham
+flightSlider.TextSize = 14
+flightSlider.BorderSizePixel = 0
+flightSlider.Parent = frame
+
+-- Flight Checkbox
+local flightCheckbox = Instance.new("TextButton")
+flightCheckbox.Size = UDim2.new(0, 20, 0, 20)
+flightCheckbox.Position = UDim2.new(0, 150, 0, 110)
+flightCheckbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+flightCheckbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+flightCheckbox.Font = Enum.Font.GothamBold
+flightCheckbox.TextSize = 14
+flightCheckbox.Text = "❌"
+flightCheckbox.BorderSizePixel = 0
+flightCheckbox.Parent = frame
+
+createLabel("Enable Flight", 110)
+
+-- Apply Button
+local applyButton = Instance.new("TextButton")
+applyButton.Size = UDim2.new(0, 100, 0, 30)
+applyButton.Position = UDim2.new(0.5, -50, 0, 190)
+applyButton.Text = "Apply"
+applyButton.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
+applyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+applyButton.Font = Enum.Font.GothamBold
+applyButton.TextSize = 14
+applyButton.BorderSizePixel = 0
+applyButton.Parent = frame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = applyButton
+
+-- Flight System
+local function enableFlight()
+    if flying then return end
+    flying = true
+
+    flightBodyVelocity = Instance.new("BodyVelocity")
+    flightBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    flightBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    flightBodyVelocity.Parent = character:FindFirstChild("HumanoidRootPart")
+
+    flightBodyGyro = Instance.new("BodyGyro")
+    flightBodyGyro.CFrame = character.HumanoidRootPart.CFrame
+    flightBodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    flightBodyGyro.Parent = character:FindFirstChild("HumanoidRootPart")
+
+    game:GetService("RunService").Stepped:Connect(function()
+        if flying then
+            local moveDir = humanoid.MoveDirection
+            flightBodyVelocity.Velocity = moveDir * flightSpeed
+            flightBodyGyro.CFrame = CFrame.new(character.HumanoidRootPart.Position, character.HumanoidRootPart.Position + moveDir)
+        end
+    end)
+end
+
+local function disableFlight()
+    if not flying then return end
+    flying = false
+    if flightBodyVelocity then flightBodyVelocity:Destroy() end
+    if flightBodyGyro then flightBodyGyro:Destroy() end
+end
+
+flightCheckbox.MouseButton1Click:Connect(function()
+    flying = not flying
+    flightCheckbox.Text = flying and "✔️" or "❌"
+    if flying then enableFlight() else disableFlight() end
+end)
+
+applyButton.MouseButton1Click:Connect(function()
+    if humanoid then
+        local speed = tonumber(walkSpeedBox.Text)
+        local jump = tonumber(jumpPowerBox.Text)
+        local newFlightSpeed = tonumber(flightSlider.Text)
+
+        if speed and speed > 0 then
+            humanoid.WalkSpeed = speed
+        end
+        if jump and jump > 0 then
+            humanoid.JumpPower = jump
+        end
+        if newFlightSpeed and newFlightSpeed > 0 then
+            flightSpeed = newFlightSpeed
+        end
+    end
+end)
