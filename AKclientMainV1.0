@@ -1,41 +1,162 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
+local humanoid = character:FindFirstChild("Humanoid")
 local userInputService = game:GetService("UserInputService")
+local tweenService = game:GetService("TweenService")
 local runService = game:GetService("RunService")
 
--- Create Screen GUI
+-- Screen GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player:WaitForChild("PlayerGui")
-screenGui.Name = "AKClientUI"
+screenGui.Name = "AkClientUI"
 screenGui.ResetOnSpawn = false
 
--- Main Frame
+-- Opening Animation Frame
+local introFrame = Instance.new("Frame")
+introFrame.Size = UDim2.new(1, 0, 1, 0)
+introFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+introFrame.BorderSizePixel = 0
+introFrame.Parent = screenGui
+
+local introText = Instance.new("TextLabel")
+introText.Size = UDim2.new(0.4, 0, 0.1, 0)
+introText.Position = UDim2.new(0.3, 0, 0.45, 0)
+introText.Text = "AkClient"
+introText.TextColor3 = Color3.fromRGB(128, 0, 255)
+introText.Font = Enum.Font.GothamBlack
+introText.TextScaled = true
+introText.BackgroundTransparency = 1
+introText.Parent = introFrame
+
+-- Fade-out Animation
+task.spawn(function()
+    wait(1.5)
+    tweenService:Create(introFrame, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
+    tweenService:Create(introText, TweenInfo.new(1), {TextTransparency = 1}):Play()
+    wait(1)
+    introFrame:Destroy()
+end)
+
+-- Main UI Frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 220)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -110)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Size = UDim2.new(0, 450, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
--- Glow Effect (Border)
+-- Smooth Dragging
+local dragging, dragInput, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+runService.RenderStepped:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        local newPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        mainFrame.Position = mainFrame.Position:Lerp(newPosition, 0.15) -- Smooth dragging effect
+    end
+end)
+
+-- UI Stroke (Purple Glow)
 local glow = Instance.new("UIStroke")
 glow.Parent = mainFrame
 glow.Thickness = 3
 glow.Color = Color3.fromRGB(128, 0, 255)
 glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Corner Radius
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 10)
-uiCorner.Parent = mainFrame
+-- Side Navigation Panel
+local sidePanel = Instance.new("Frame")
+sidePanel.Size = UDim2.new(0, 100, 1, 0)
+sidePanel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+sidePanel.BorderSizePixel = 0
+sidePanel.Parent = mainFrame
 
--- Close and Minimize Buttons
+local function createButton(name, posY)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 35)
+    button.Position = UDim2.new(0, 0, 0, posY)
+    button.Text = name
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+    button.BorderSizePixel = 0
+    button.Parent = sidePanel
+
+    return button
+end
+
+local homeButton = createButton("Home", 10)
+local movementButton = createButton("Movement", 50)
+local gameButton = createButton("Game", 90)
+
+-- Content Frames
+local homeFrame = Instance.new("Frame")
+homeFrame.Size = UDim2.new(1, -100, 1, 0)
+homeFrame.Position = UDim2.new(0, 100, 0, 0)
+homeFrame.BackgroundTransparency = 1
+homeFrame.Parent = mainFrame
+
+local movementFrame = Instance.new("Frame")
+movementFrame.Size = UDim2.new(1, -100, 1, 0)
+movementFrame.Position = UDim2.new(0, 100, 0, 0)
+movementFrame.BackgroundTransparency = 1
+movementFrame.Visible = false
+movementFrame.Parent = mainFrame
+
+local gameFrame = Instance.new("Frame")
+gameFrame.Size = UDim2.new(1, -100, 1, 0)
+gameFrame.Position = UDim2.new(0, 100, 0, 0)
+gameFrame.BackgroundTransparency = 1
+gameFrame.Visible = false
+gameFrame.Parent = mainFrame
+
+-- Page Switch Function
+local function showPage(page)
+    homeFrame.Visible = (page == "Home")
+    movementFrame.Visible = (page == "Movement")
+    gameFrame.Visible = (page == "Game")
+end
+
+homeButton.MouseButton1Click:Connect(function() showPage("Home") end)
+movementButton.MouseButton1Click:Connect(function() showPage("Movement") end)
+gameButton.MouseButton1Click:Connect(function() showPage("Game") end)
+
+-- Auto-Reexecution on Death
+local function onCharacterAdded(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+
+    wait(1) -- Short delay before re-executing
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/AKclient/AKclient/main/AKclientMainV1.0"))()
+end
+
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Close Button
 local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 25, 0, 25)
-closeButton.Position = UDim2.new(1, -30, 0, 5)
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
 closeButton.Text = "X"
 closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -44,195 +165,6 @@ closeButton.TextSize = 14
 closeButton.BorderSizePixel = 0
 closeButton.Parent = mainFrame
 
-local minimizeButton = Instance.new("TextButton")
-minimizeButton.Size = UDim2.new(0, 25, 0, 25)
-minimizeButton.Position = UDim2.new(1, -60, 0, 5)
-minimizeButton.Text = "-"
-minimizeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.TextSize = 14
-minimizeButton.BorderSizePixel = 0
-minimizeButton.Parent = mainFrame
-
--- Sidebar for Sections
-local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 80, 1, 0)
-sidebar.Position = UDim2.new(0, 0, 0, 0)
-sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-sidebar.BorderSizePixel = 0
-sidebar.Parent = mainFrame
-
--- Section Buttons
-local function createSectionButton(name, posY)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 30)
-    button.Position = UDim2.new(0, 0, 0, posY)
-    button.Text = name
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 14
-    button.BorderSizePixel = 0
-    button.Parent = sidebar
-
-    return button
-end
-
-local movementButton = createSectionButton("Movement", 10)
-local gameButton = createSectionButton("Game", 50)
-
--- Content Frames
-local movementFrame = Instance.new("Frame")
-movementFrame.Size = UDim2.new(1, -80, 1, 0)
-movementFrame.Position = UDim2.new(0, 80, 0, 0)
-movementFrame.BackgroundTransparency = 1
-movementFrame.Parent = mainFrame
-
-local gameFrame = Instance.new("Frame")
-gameFrame.Size = UDim2.new(1, -80, 1, 0)
-gameFrame.Position = UDim2.new(0, 80, 0, 0)
-gameFrame.BackgroundTransparency = 1
-gameFrame.Visible = false
-gameFrame.Parent = mainFrame
-
--- Function to Switch Pages
-local function showPage(page)
-    movementFrame.Visible = (page == "Movement")
-    gameFrame.Visible = (page == "Game")
-end
-
-movementButton.MouseButton1Click:Connect(function() showPage("Movement") end)
-gameButton.MouseButton1Click:Connect(function() showPage("Game") end)
-
--- Notifications
-local function showNotification(text)
-    local notification = Instance.new("TextLabel")
-    notification.Text = text
-    notification.Size = UDim2.new(0, 250, 0, 30)
-    notification.Position = UDim2.new(1, -260, 1, -40)
-    notification.BackgroundTransparency = 0.3
-    notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    notification.TextColor3 = Color3.fromRGB(255, 255, 255)
-    notification.Font = Enum.Font.GothamBold
-    notification.TextSize = 14
-    notification.BorderSizePixel = 0
-    notification.Parent = screenGui
-
-    local uiCorner = Instance.new("UICorner")
-    uiCorner.CornerRadius = UDim.new(0, 8)
-    uiCorner.Parent = notification
-
-    task.spawn(function()
-        wait(2.5)  -- Notification disappears after 2.5 seconds
-        notification:Destroy()
-    end)
-end
-
--- WalkSpeed & JumpPower Adjusters
-local function createAdjuster(name, posY, callback)
-    local label = Instance.new("TextLabel")
-    label.Text = name
-    label.Size = UDim2.new(0, 100, 0, 20)
-    label.Position = UDim2.new(0, 20, 0, posY)
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = movementFrame
-
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0, 80, 0, 25)
-    box.Position = UDim2.new(0, 150, 0, posY)
-    box.PlaceholderText = "Value"
-    box.Text = ""
-    box.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    box.TextColor3 = Color3.fromRGB(255, 255, 255)
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 14
-    box.BorderSizePixel = 0
-    box.Parent = movementFrame
-
-    local applyButton = Instance.new("TextButton")
-    applyButton.Size = UDim2.new(0, 50, 0, 25)
-    applyButton.Position = UDim2.new(0, 240, 0, posY)
-    applyButton.Text = "Set"
-    applyButton.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
-    applyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    applyButton.Font = Enum.Font.GothamBold
-    applyButton.TextSize = 14
-    applyButton.BorderSizePixel = 0
-    applyButton.Parent = movementFrame
-
-    applyButton.MouseButton1Click:Connect(function()
-        local value = tonumber(box.Text)
-        if value and value > 0 then
-            callback(value)
-        end
-    end)
-end
-
-createAdjuster("WalkSpeed", 40, function(value) humanoid.WalkSpeed = value end)
-createAdjuster("JumpPower", 80, function(value) humanoid.UseJumpPower = true humanoid.JumpPower = value end)
-
--- Noclip Toggle Button
-local noclipEnabled = false
-local noclipButton = Instance.new("TextButton")
-noclipButton.Size = UDim2.new(0, 200, 0, 50)
-noclipButton.Position = UDim2.new(0.5, -100, 0.5, -25)
-noclipButton.Text = "Noclip: OFF"
-noclipButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-noclipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-noclipButton.Font = Enum.Font.GothamBold
-noclipButton.TextSize = 18
-noclipButton.BorderSizePixel = 0
-noclipButton.Parent = gameFrame
-
-local noclipCorner = Instance.new("UICorner")
-noclipCorner.CornerRadius = UDim.new(0, 10)
-noclipCorner.Parent = noclipButton
-
-local function toggleNoclip()
-    noclipEnabled = not noclipEnabled
-    noclipButton.Text = noclipEnabled and "Noclip: ON" or "Noclip: OFF"
-    noclipButton.BackgroundColor3 = noclipEnabled and Color3.fromRGB(100, 0, 150) or Color3.fromRGB(50, 50, 50)
-
-    if noclipEnabled then
-        runService.Stepped:Connect(function()
-            if noclipEnabled and character then
-                for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
-    end
-end
-
-noclipButton.MouseButton1Click:Connect(toggleNoclip)
-
--- Minimize Functionality
-local guiVisible = true
-
-minimizeButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-    guiVisible = false
-    showNotification("AK Client Hidden (Press Left Ctrl to Show)")
-end)
-
--- Toggle GUI with Left Ctrl
-userInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.LeftControl then
-        guiVisible = not guiVisible
-        mainFrame.Visible = guiVisible
-        local status = guiVisible and "AK Client Shown" or "AK Client Hidden"
-        showNotification(status .. " (Press Left Ctrl to Toggle)")
-    end
-end)
-
--- Close Button
 closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
