@@ -1,159 +1,62 @@
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player:WaitForChild("PlayerGui")
-screenGui.Name = "AkClientUI"
-screenGui.ResetOnSpawn = false
+local Window = Rayfield:CreateWindow({
+   Name = "AkClient",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "AkClient",
+   LoadingSubtitle = "by milky",
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
--- Main GUI Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 250)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
-mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-mainFrame.BackgroundTransparency = 0.4
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
 
--- UI Stroke (Purple Glow)
-local glow = Instance.new("UIStroke")
-glow.Parent = mainFrame
-glow.Thickness = 2
-glow.Color = Color3.fromRGB(128, 0, 255)
-glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = AkClient, -- Create a custom folder for your hub/game
+      FileName = "AkClient"
+   },
 
--- Title Label
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 30)
-titleLabel.Text = "AkClient"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextScaled = true
-titleLabel.BackgroundTransparency = 1
-titleLabel.Parent = mainFrame
+   Discord = {
+      Enabled = false,
+      Invite = "wwcWZcuh", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = false 
+   },
 
--- Sidebar for Category Buttons
-local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 100, 1, -30)
-sidebar.Position = UDim2.new(0, 0, 0, 30)
-sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-sidebar.BackgroundTransparency = 0.2
-sidebar.Parent = mainFrame
+   KeySystem = false,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", 
+      FileName = "Key", 
+      SaveKey = true,
+      GrabKeyFromSite = false, 
+      Key = {"Hello"}
+   }
+})
 
--- Function to Create Category Buttons
-local function createCategoryButton(name, posY, callback)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 40)
-    button.Position = UDim2.new(0, 5, 0, posY)
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 14
-    button.Text = name
-    button.BorderSizePixel = 0
-    button.AutoButtonColor = true
-    button.Parent = sidebar
-    button.MouseButton1Click:Connect(callback)
-    return button
-end
-
--- Pages
-local mainPage = Instance.new("Frame")
-mainPage.Size = UDim2.new(0.75, -10, 1, -30)
-mainPage.Position = UDim2.new(0.25, 5, 0, 30)
-mainPage.BackgroundTransparency = 1
-mainPage.Parent = mainFrame
-
-local playerPage = Instance.new("Frame")
-playerPage.Size = mainPage.Size
-playerPage.Position = mainPage.Position
-playerPage.BackgroundTransparency = 1
-playerPage.Visible = false
-playerPage.Parent = mainFrame
-
--- Toggle Pages
-local function switchToPage(page)
-    mainPage.Visible = false
-    playerPage.Visible = false
-    page.Visible = true
-end
-
-local mainButton = createCategoryButton("Main", 10, function() switchToPage(mainPage) end)
-local playerButton = createCategoryButton("Player", 60, function() switchToPage(playerPage) end)
-
--- Function to Create Input Boxes
-local function createInput(parent, name, posY, default, callback)
-    local inputFrame = Instance.new("Frame")
-    inputFrame.Size = UDim2.new(0.9, 0, 0, 40)
-    inputFrame.Position = UDim2.new(0.05, 0, 0, posY)
-    inputFrame.BackgroundTransparency = 1
-    inputFrame.Parent = parent
-
-    local inputLabel = Instance.new("TextLabel")
-    inputLabel.Size = UDim2.new(1, 0, 0, 20)
-    inputLabel.Text = name
-    inputLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    inputLabel.Font = Enum.Font.Gotham
-    inputLabel.TextSize = 14
-    inputLabel.BackgroundTransparency = 1
-    inputLabel.Parent = inputFrame
-
-    local inputBox = Instance.new("TextBox")
-    inputBox.Size = UDim2.new(1, 0, 0, 20)
-    inputBox.Position = UDim2.new(0, 0, 0, 20)
-    inputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    inputBox.Font = Enum.Font.Gotham
-    inputBox.TextSize = 14
-    inputBox.Text = tostring(default)
-    inputBox.Parent = inputFrame
-
-    inputBox.FocusLost:Connect(function()
-        local value = tonumber(inputBox.Text)
-        if value then
-            callback(value)
-        else
-            inputBox.Text = tostring(default)
-        end
-    end)
-end
-
--- Walkspeed & Jump Power (Main Page)
-createInput(mainPage, "Walkspeed", 10, 16, function(value) humanoid.WalkSpeed = value end)
-createInput(mainPage, "Jump Power", 60, 50, function(value) humanoid.JumpPower = value end)
-
--- ESP Toggle Button
+local Toggle = MainTab:CreateToggle({
+   Name = "ESP",
+   CurrentValue = false,
+   Flag = "ESPToggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
 local espEnabled = false
-
-local espButton = Instance.new("TextButton")
-espButton.Size = UDim2.new(0.9, 0, 0, 40)
-espButton.Position = UDim2.new(0.05, 0, 0, 110)
-espButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-espButton.Font = Enum.Font.GothamBold
-espButton.TextSize = 14
-espButton.Text = "ESP: OFF"
-espButton.Parent = mainPage
+local player = game.Players.LocalPlayer
 
 local function toggleESP()
     espEnabled = not espEnabled
-    espButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
 
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character then
-            local highlight = player.Character:FindFirstChild("ESP_Highlight")
+    for _, targetPlayer in pairs(game.Players:GetPlayers()) do
+        if targetPlayer ~= player and targetPlayer.Character then
+            local highlight = targetPlayer.Character:FindFirstChild("ESP_Highlight")
+            
             if espEnabled then
                 if not highlight then
                     highlight = Instance.new("Highlight")
                     highlight.Name = "ESP_Highlight"
                     highlight.FillTransparency = 1
-                    highlight.OutlineColor = Color3.fromRGB(128, 0, 255)
+                    highlight.OutlineColor = Color3.fromRGB(128, 0, 255) -- Purple
                     highlight.OutlineTransparency = 0
-                    highlight.Parent = player.Character
+                    highlight.Parent = targetPlayer.Character
                 end
             else
                 if highlight then
@@ -164,88 +67,11 @@ local function toggleESP()
     end
 end
 
-espButton.MouseButton1Click:Connect(toggleESP)
-
--- Noclip Toggle Button
-local noclipEnabled = false
-
-local noclipButton = Instance.new("TextButton")
-noclipButton.Size = UDim2.new(0.9, 0, 0, 40)
-noclipButton.Position = UDim2.new(0.05, 0, 0, 160)
-noclipButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-noclipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-noclipButton.Font = Enum.Font.GothamBold
-noclipButton.TextSize = 14
-noclipButton.Text = "Noclip: OFF"
-noclipButton.Parent = mainPage
-
-local function toggleNoclip()
-    noclipEnabled = not noclipEnabled
-    noclipButton.Text = noclipEnabled and "Noclip: ON" or "Noclip: OFF"
-
-    local function noclipLoop()
-        while noclipEnabled and task.wait() do
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanCollide then
-                    part.CanCollide = false
-                end
-            end
-        end
+-- Toggle ESP with a keybind (Change "E" to any key you prefer)
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.E then
+        toggleESP()
     end
-
-    if noclipEnabled then
-        spawn(noclipLoop)
-    end
-end
-
-noclipButton.MouseButton1Click:Connect(toggleNoclip)
-
--- UI Toggle Button
-local uiToggle = Instance.new("TextButton")
-uiToggle.Size = UDim2.new(0, 50, 0, 50)
-uiToggle.Position = UDim2.new(0.05, 0, 0.9, -50)
-uiToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-uiToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-uiToggle.Font = Enum.Font.GothamBold
-uiToggle.TextSize = 14
-uiToggle.Text = "☰"
-uiToggle.Parent = screenGui
-uiToggle.Draggable = true
-uiToggle.Active = true
-
-local uiVisible = true
-uiToggle.MouseButton1Click:Connect(function()
-    uiVisible = not uiVisible
-    mainFrame.Visible = uiVisible
 end)
-
--- Show/Hide Message at Bottom Right
-local messageFrame = Instance.new("Frame")
-messageFrame.Size = UDim2.new(0, 200, 0, 40)
-messageFrame.Position = UDim2.new(1, -220, 1, -50)
-messageFrame.BackgroundTransparency = 0.5
-messageFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-messageFrame.Parent = screenGui
-messageFrame.Visible = false
-
-local messageLabel = Instance.new("TextLabel")
-messageLabel.Size = UDim2.new(1, 0, 1, 0)
-messageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-messageLabel.Font = Enum.Font.Gotham
-messageLabel.TextSize = 14
-messageLabel.Text = "AkClient UI Hidden"
-messageLabel.BackgroundTransparency = 1
-messageLabel.Parent = messageFrame
-
-local function showMessage(msg)
-    messageLabel.Text = msg
-    messageFrame.Visible = true
-    task.wait(2)
-    messageFrame.Visible = false
-end
-
-uiToggle.MouseButton1Click:Connect(function()
-    uiVisible = not uiVisible
-    mainFrame.Visible = uiVisible
-    showMessage(uiVisible and "AkClient UI Shown" or "AkClient UI Hidden")
-end)
+   end,
+})
